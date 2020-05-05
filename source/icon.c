@@ -1,7 +1,7 @@
 /*
  *  Routines dealing with processing of Onekey's icon
  *  (be they for tooltypes or AppIcon purposes).
- *  
+ *
  *  MWS, Tuesday 13-Oct-92
  */
 #include <exec/types.h>

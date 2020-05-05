@@ -113,7 +113,9 @@ struct GfxBase *GfxBase;	/* graphics pointer */
 struct IntuitionBase *IntuitionBase;	/* intuition pointer */
 struct Library *IconBase, *DiskfontBase, *GadToolsBase;
 WINTEXTINFO wtinfo;
-extern struct WBStartup *WBenchMsg;
+
+extern struct WBStartup *_WBenchMsg; // This is for bebbo
+// extern struct WBStartup *WBenchMsg;
 
 #define MEMSNAP_TIME	10L
 #define MEMONLY_TIME	25L
@@ -122,9 +124,9 @@ extern struct WBStartup *WBenchMsg;
 
 /* prototypes for general routines */
 
-void _main(char *);
+void main(void);
 BOOL OpenLibs(void);
-void CloseAll(void), main(int, char **);
+void CloseAll(void);
 BOOL long2str(LONG, char *, UWORD);
 
 #ifdef LATTICE	/* save the odd byte */
@@ -132,7 +134,7 @@ BOOL long2str(LONG, char *, UWORD);
 void MemCleanup(void){}
 #endif
 
-BOOL 
+BOOL
 OpenLibs()			/* open required libraries */
 {
     if ((GfxBase = (void *) OpenLibrary("graphics.library", 0L)) &&
@@ -146,7 +148,7 @@ OpenLibs()			/* open required libraries */
 }
 
 
-void 
+void
 CloseAll()			/* close opened libraries */
 {
     if (menu)
@@ -173,7 +175,7 @@ CloseAll()			/* close opened libraries */
 
 /* and this one is rather specific to this program... */
 
-BOOL 
+BOOL
 long2str(LONG n, char *s, UWORD len)	/* long to string, right-adjusted */
 {				/* will NOT null-terminate */
     /* len is space in buffer (excl. '\0') */
@@ -222,7 +224,7 @@ void obtainmem(ULONG *), submem(ULONG *, ULONG *, ULONG *), updatemem(ULONG *, W
 
 #define clearmem(mem) 		mem[CHIP] = mem[FAST] = mem[TOTAL] = 0L
 
-void 
+void
 obtainmem(ULONG * mem)		/* store current memory */
 {
     mem[TOTAL] = mem[CHIP] = AvailMem(MEMF_CHIP);
@@ -230,7 +232,7 @@ obtainmem(ULONG * mem)		/* store current memory */
 }
 
 
-void 
+void
 submem(ULONG * to, ULONG * from, ULONG * howmuch)	/* to = from - howmuch */
 {
     to[CHIP] = from[CHIP] - howmuch[CHIP];
@@ -239,7 +241,7 @@ submem(ULONG * to, ULONG * from, ULONG * howmuch)	/* to = from - howmuch */
 }
 
 
-void 
+void
 updatemem(ULONG * mem, WINTEXT * memtext)	/* update specified display */
 {
     long2str(mem[CHIP], memtext[CHIP].text, 8);
@@ -270,8 +272,7 @@ EasyEasyRequest(char *str)
 /******************************************************************************/
 
 
-void 
-_main(char *args)		/* provide a memory 'meter' */
+void main(void)		/* provide a memory 'meter' */
 {
     struct IntuiMessage *msg;		/* our window messages */
     ULONG cmem[3], smem[3], umem[3];	/* storage of memory information */
@@ -284,7 +285,7 @@ _main(char *args)		/* provide a memory 'meter' */
     if (!OpenLibs())		/* failure => under 1.3 */
 	return;
 
-    GetOurIcon(WBenchMsg);
+    GetOurIcon(_WBenchMsg);
     if (InitWinTextInfo(&wtinfo))
     {
 	/* size window to fit screen font */
