@@ -8,9 +8,10 @@ endif()
 
 set(CMAKE_C_STANDARD 11)
 file(GLOB_RECURSE SOURCES source/*.c source/*.h)
-add_executable(MemSnap ${SOURCES})
-target_include_directories(MemSnap PRIVATE ${PROJECT_SOURCE_DIR}/source)
-target_compile_options(MemSnap PUBLIC -Wall -Wextra -Os)
+add_executable(${PROJECT_NAME} ${SOURCES})
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/source)
+target_compile_options(${PROJECT_NAME} PUBLIC -Wall -Wextra -Os -msmall-code -mregparm=2 -fbaserel -ffast-math -s -mcrt=nix20)
+target_link_options(${PROJECT_NAME} PUBLIC -mregparm=2 -fbaserel -ffast-math -s -mcrt=nix20)
 
 set(MAJOR_VERSION 1)
 set(MINOR_VERSION 2)
@@ -22,4 +23,4 @@ configure_file(
 )
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-target_link_options(MemSnap PRIVATE -Wl,-Map=MemSnap.map)
+target_link_options(${PROJECT_NAME} PRIVATE -Wa,--base-size-default-16,-smallcode -Wl,-Map=MemSnap.map)
