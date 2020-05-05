@@ -4,9 +4,9 @@
  *
  *  MWS, Tuesday 13-Oct-92
  */
+#include "icon.h"
 #include <exec/types.h>
 #include <dos/dos.h>
-#include <workbench/startup.h>
 #include <workbench/workbench.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
@@ -14,50 +14,48 @@
 #include <proto/icon.h>
 #include <string.h>
 
-#include "icon.h"
 static struct DiskObject *onekeyobj;
 
-BOOL
-GetOurIcon(struct WBStartup *WBenchMsg)
+BOOL GetOurIcon(struct WBStartup *WBenchMsg)
 {
 	if (WBenchMsg)
-		onekeyobj = GetDiskObject(WBenchMsg->sm_ArgList->wa_Name);
+		onekeyobj = GetDiskObject((STRPTR)WBenchMsg->sm_ArgList->wa_Name);
 	return onekeyobj ? TRUE : FALSE;
 }
 
 /* safe to call when open failed, and multiple times */
-void
-FreeOurIcon()
+void FreeOurIcon()
 {
 	if (onekeyobj) FreeDiskObject(onekeyobj);
 	onekeyobj = NULL;
 }
 
 /* like ArgString() */
-char *
-TTString(char *name, char *def)
+char * TTString(char *name, char *def)
 {
-	char *what;
-	if (onekeyobj)
-		if (what = FindToolType(onekeyobj->do_ToolTypes, name))
+	if(onekeyobj) {
+		char *what = (char*)FindToolType(onekeyobj->do_ToolTypes, (STRPTR)name);
+		if(what != NULL) {
 			return what;
+		}
+	}
 	return def;
 }
 
 /* like ArgInt() */
-LONG
-TTInt(char *name, LONG def)
+LONG TTInt(char *name, LONG def)
 {
-	char *what;
-	if (onekeyobj)
-		if (what = FindToolType(onekeyobj->do_ToolTypes, name))
-			StrToLong(what, &def);
+	if(onekeyobj) {
+		char *what = (char*)FindToolType(onekeyobj->do_ToolTypes, (STRPTR)name);
+		if(what != NULL) {
+			StrToLong((STRPTR)what, &def);
+		}
+	}
 	return def;
 }
 
 /* simple extension to ArgXXX routines */
-BOOL
-TTBool(char *name, BOOL def)
+BOOL TTBool(char *name, BOOL def)
 {
 	char	*s;
 

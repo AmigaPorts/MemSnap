@@ -2,15 +2,15 @@
 #define VERSION_H
 
 const char version_str[] = (
-	"$VER: ${PROJECT_NAME} ${AMIGA_VERSION}"
+	"$VER: ${PROJECT_NAME} ${AMIGA_VERSION} "
 	"(" __DATE__ ") github.com/AmigaPorts/MemSnap"
 );
 
 const char about_text[] = (
-"       ${PROJECT_NAME} v${AMIGA_VERSION}\n"
-" original by Martin W. Scott\n"
+"${PROJECT_NAME} v${AMIGA_VERSION}\n"
+"Original by Martin W. Scott\n"
 "github.com/AmigaPorts/MemSnap\n\n"
-"          Freeware"
+"License: Freeware"
 );
 
 #endif /* VERSION_H */

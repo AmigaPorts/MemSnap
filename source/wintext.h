@@ -8,10 +8,10 @@
 */
 
 typedef struct wintext {
-	struct wintext	*next;		/* next WINTEXT */
-	char		*text;		/* actual text to be rendered */
-	BYTE		lpos, tpos;	/* character coordinates of 1st char in string */
-	UWORD		pen, bg, mode;	/* color and drawmode for text */
+	struct wintext *next;		/* next WINTEXT */
+	char *text;		/* actual text to be rendered */
+	BYTE lpos, tpos;	/* character coordinates of 1st char in string */
+	UWORD pen, bg, mode;	/* color and drawmode for text */
 } WINTEXT;
 
 typedef struct wintextinfo {

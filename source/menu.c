@@ -13,11 +13,11 @@
 #include "menu.h"
 
 static struct NewMenu gt_items[] = {
-	{ NM_TITLE, "MemSnapII",	NULL, 0, 0, NULL },
-	{ NM_ITEM,  "Small window",     ".", 0, 0, NULL },
-	{ NM_ITEM,  "Large window",	"/",0, 0, NULL },
-	{ NM_ITEM,  "About...",		"A",0, 0, NULL },
-	{ NM_ITEM,  "Quit",		"Q", 0, 0, NULL },
+	{ NM_TITLE, (const STRPTR)"MemSnap", NULL, 0, 0, NULL },
+	{ NM_ITEM,  (const STRPTR)"Small window", (const STRPTR)".", 0, 0, NULL },
+	{ NM_ITEM,  (const STRPTR)"Large window", (const STRPTR)"/",0, 0, NULL },
+	{ NM_ITEM,  (const STRPTR)"About...", (const STRPTR)"A",0, 0, NULL },
+	{ NM_ITEM,  (const STRPTR)"Quit", (const STRPTR)"Q", 0, 0, NULL },
 
 	{ NM_END }
 };

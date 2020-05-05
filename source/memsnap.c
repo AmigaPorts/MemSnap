@@ -8,12 +8,15 @@
 *
 *	Martin W Scott, 3/92.
 */
+#include <stdlib.h> // EXIT_FAILURE, EXIT_SUCCESS
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <intuition/intuition.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <proto/intuition.h>
+#include <proto/graphics.h>
+#include <graphics/text.h>
 #include "wintext.h"		/* font-independent positioning of text */
 #include "icon.h"
 #include "menu.h"
@@ -23,8 +26,8 @@
 #define CHARS_DOWN	 4	/* how many rows of text in window */
 #define REMOVECHARS	27	/* how many cols removed when window small */
 
-const char large_header[] = "       Current Snapshot   In use     Peak";
-const char small_header[] = "    Memory";
+char large_header[] = "       Current Snapshot   In use     Peak";
+char small_header[] = "    Memory";
 
 WINTEXT wtexts[] =
 {
@@ -69,33 +72,38 @@ WINTEXT ptexts[] =
     {NULL, &pbuf[2][0], 33, 3, 1, 0, JAM2}
 };
 
-/* back to normal stuff */
+// Whole window
+struct Gadget drag_gadget = {
+	.NextGadget = NULL,
+	.Flags = GRELWIDTH | GRELHEIGHT | GADGHNONE,
+	.Activation = GADGIMMEDIATE,
+	.GadgetType = GTYP_WDRAGGING,
 
-struct Gadget drag_gadget =
-{
-/* whole window */
-    NULL,
-    0, 0, 0, 0,
-    GRELWIDTH | GRELHEIGHT | GADGHNONE,
-    GADGIMMEDIATE,
-    GTYP_WDRAGGING
-/* rest is 0/NULL */
+	// Rest is 0/NULL
+	.LeftEdge = 0, .TopEdge = 0, .Width = 0, .Height = 0,
+	.GadgetRender = NULL, .SelectRender = NULL,
+	.GadgetText = NULL, .MutualExclude = 0,
+	.SpecialInfo = NULL, .GadgetID = 0, .UserData = NULL
 };
 
-struct Gadget biggadget =	/* this will be snapshot gadget */
-{
-    &drag_gadget,
-    0, 0, 0, 0,
-    GRELWIDTH | GADGHCOMP,
-    RELVERIFY
-/* rest is 0/NULL */
+// Snapshot gadget
+struct Gadget biggadget =	{
+	.NextGadget = &drag_gadget,
+	.Flags = GRELWIDTH | GADGHCOMP,
+	.Activation = RELVERIFY,
+
+	// Rest is 0/NULL
+	.GadgetType = 0,
+	.LeftEdge = 0, .TopEdge = 0, .Width = 0, .Height = 0,
+	.GadgetRender = NULL, .SelectRender = NULL,
+	.GadgetText = NULL, .MutualExclude = 0,
+	.SpecialInfo = NULL, .GadgetID = 0, .UserData = NULL
 };
 
 #define LEFTEDGE 40		/* window coordinates */
 #define TOPEDGE  20
 
-struct NewWindow nw =
-{
+struct NewWindow nw = {
     LEFTEDGE, TOPEDGE, 0, 0, -1, -1,	/* dimension, pens */
     NEWSIZE | MENUPICK | GADGETUP,	/* IDCMP flags */
     WFLG_SMART_REFRESH,		/* window flags */
@@ -106,8 +114,7 @@ struct NewWindow nw =
     WBENCHSCREEN		/* screen to open onto */
 };
 
-struct TagItem wtags[] =
-{
+struct TagItem wtags[] = {
     {WA_AutoAdjust, TRUE},
     {TAG_DONE}
 };
@@ -135,11 +142,11 @@ static BOOL long2str(LONG, char *, UWORD);
 static BOOL OpenLibs()			/* open required libraries */
 {
 	if (
-		(GfxBase = (struct GfxBase *) OpenLibrary("graphics.library", 0L)) &&
-		(IntuitionBase = (struct IntuitionBase *) OpenLibrary("intuition.library", 37L)) &&
-		(DiskfontBase = (struct Library *) OpenLibrary("diskfont.library", 36L)) &&
-		(GadToolsBase = (struct Library *) OpenLibrary("gadtools.library", 37L)) &&
-		(IconBase = (struct Library *) OpenLibrary("icon.library", 37L))
+		(GfxBase = (struct GfxBase *) OpenLibrary((const STRPTR)"graphics.library", 0L)) &&
+		(IntuitionBase = (struct IntuitionBase *) OpenLibrary((const STRPTR)"intuition.library", 37L)) &&
+		(DiskfontBase = (struct Library *) OpenLibrary((const STRPTR)"diskfont.library", 36L)) &&
+		(GadToolsBase = (struct Library *) OpenLibrary((const STRPTR)"gadtools.library", 37L)) &&
+		(IconBase = (struct Library *) OpenLibrary((const STRPTR)"icon.library", 37L))
 	) {
 		return TRUE;
 	}
@@ -165,9 +172,9 @@ static void CloseAll()			/* close opened libraries */
 	if (GadToolsBase)
 		CloseLibrary(GadToolsBase);
 	if (GfxBase)
-		CloseLibrary(GfxBase);
+		CloseLibrary((struct Library*)GfxBase);
 	if (IntuitionBase)
-		CloseLibrary(IntuitionBase);
+		CloseLibrary((struct Library*)IntuitionBase);
 }
 
 
@@ -271,173 +278,163 @@ static void clearpeak(LONG *peakvals) {
 }
 
 /* pop up a requester */
-static void EasyEasyRequest(char *str)
-{
+static void MsgBox(const char *str) {
     struct EasyStruct es;
 
     es.es_StructSize = sizeof(struct EasyStruct);
 
     es.es_Flags = 0L;
-    es.es_Title = "MemSnap Message";
-    es.es_TextFormat = str;
-    es.es_GadgetFormat = "OK";
+    es.es_Title = (UBYTE*)"MemSnap Message";
+    es.es_TextFormat = (UBYTE*)str;
+    es.es_GadgetFormat = (UBYTE*)"OK";
     EasyRequestArgs(NULL, &es, NULL, NULL);
 }
-
-
-#define Msg(s) EasyEasyRequest(s)
 
 /******************************************************************************/
 
 
-void main(void)		/* provide a memory 'meter' */
+int main(void)		/* provide a memory 'meter' */
 {
-    struct IntuiMessage *msg;		/* our window messages */
-    LONG cmem[3], smem[3], umem[3];	/* storage of memory information */
-    ULONG class;			/* message class */
-    UWORD code;				/* and code */
-    WORD smallwidth, largewidth;	/* possible window sizes */
-    BOOL small;				/* are we small? */
+	struct IntuiMessage *msg;				// Our window messages.
+	LONG cmem[3], smem[3], umem[3]; // Storage of memory information.
+	ULONG class;										// Message class.
+	UWORD code;											// And code.
+	WORD smallwidth, largewidth;		// Possible window sizes.
+	BOOL small;											// Are we small?
 
-
-    if (!OpenLibs())		/* failure => under 1.3 */
-			return;
-
-    GetOurIcon(_WBenchMsg);
-    if (InitWinTextInfo(&wtinfo))
-    {
-	/* size window to fit screen font */
-	nw.LeftEdge = TTInt("LEFTEDGE", LEFTEDGE);
-	nw.TopEdge = TTInt("TOPEDGE", TOPEDGE);
-	small = TTBool("SMALL", FALSE);
-	FreeOurIcon();		/* finished with it */
-
-	nw.Height = CHARS_DOWN * wtinfo.font_y + wtinfo.toffset + wtinfo.boffset;
-	largewidth = CHARS_ACROSS * wtinfo.font_x + wtinfo.loffset + wtinfo.roffset;
-	smallwidth = largewidth - REMOVECHARS * wtinfo.font_x;
-	nw.Width = small ? smallwidth : largewidth;
-	wtexts[0].text = small ? small_header : large_header;
-
-	/* and set up big gadget */
-	biggadget.LeftEdge = wtinfo.loffset;
-	biggadget.TopEdge = wtinfo.toffset;
-	biggadget.Width = -wtinfo.roffset-wtinfo.loffset;
-	biggadget.Height = wtinfo.font_y;
-
-	if (w = OpenWindowTagList(&nw, wtags))
-	{
-	    if (w->Width != nw.Width)
-	    {
-		Msg("Window too small for text\nChoose a smaller font");
-		CloseAll();
-		return;
-	    }
-
-	    if (menu = AllocMemSnapMenu(w))
-		SetMenuStrip(w, menu);
-	    else
-	    {
-		Msg("Couldn't create menus");
-		CloseAll();
-		return;
-	    }
-
-	    wtinfo.window = w;
-	    SetFont(w->RPort, wtinfo.tf);
-	    RenderWinTexts(&wtinfo, wtexts);	/* draw initial texts */
-
-	    clearmem(smem);	/* initialize memory display */
-
-	    for (;;)		/* main event loop */
-	    {
-		while (msg = (struct IntuiMessage *) GetMsg(w->UserPort))
-		{
-		    class = msg->Class;
-		    code = msg->Code;
-		    ReplyMsg((struct Message *) msg);
-
-		    if (class == GADGETUP)
-		    {
-			if (!small)
-			{
-				/* new snapshot */
-				obtainmem(smem);
-				updatemem(smem, stexts);
-				clearpeak(peakvals);
-			}
-			else goto makelarge;	/* naughty but so what? */
-		    }
-		    else if (class == NEWSIZE)
-		    {
-		        RenderWinTexts(&wtinfo, wtexts);	/* redraw texts */
-			if (!small)
-			    updatemem(smem, stexts);
-		    }
-		    else if (class == MENUPICK)
-		    {
-			switch (ITEMNUM(code))
-			{
-			case SMALL:
-			    if (!small)
-			    {
-				wtexts[0].text = small_header;
-				SizeWindow(w, smallwidth-largewidth, 0);
-				small = TRUE;
-			    }
-			    break;
-
-			case LARGE:
-makelarge:		    if (small)	/* to do: move if nec. */
-			    {
-				WORD movex;
-				wtexts[0].text = large_header;
-				movex = w->WScreen->Width - w->LeftEdge - largewidth;
-				if (movex < 0)
-				    MoveWindow(w, movex, 0);
-				SizeWindow(w, largewidth-smallwidth, 0);
-				small = FALSE;
-			    }
-			    break;
-
-			case ABOUT:
-			    Msg(about_text);
-			    break;
-
-			case QUIT:
-			    CloseAll();
-			    return;
-			}
-		    }
-
-		}		/* while */
-
-		/* do memory window stuff */
-		obtainmem(cmem);
-		updatemem(cmem, ctexts);
-
-		if (small)
-		{
-		    Delay(MEMONLY_TIME);
-		}
-		else
-		{
-		    submem(umem, smem, cmem);
-		    updatemem(umem, utexts);
-				updatepeak(umem, ptexts, peakvals);
-
-		    Delay(MEMSNAP_TIME);
-		}
-
-	    } /* for */
+	// Failure => under 1.3
+	if (!OpenLibs()) {
+		return EXIT_FAILURE;
 	}
-	else
-	    Msg("Can't open window");
-    }
-    else
-	Msg("Can't open font");
 
-    FreeOurIcon();
+	GetOurIcon(_WBenchMsg);
+	if (InitWinTextInfo(&wtinfo)) {
+		// Size window to fit screen font
+		nw.LeftEdge = TTInt("LEFTEDGE", LEFTEDGE);
+		nw.TopEdge = TTInt("TOPEDGE", TOPEDGE);
+		small = TTBool("SMALL", FALSE);
+		FreeOurIcon(); // finished with it
 
-    CloseAll();
+		nw.Height = CHARS_DOWN * wtinfo.font_y + wtinfo.toffset + wtinfo.boffset;
+		largewidth = CHARS_ACROSS * wtinfo.font_x + wtinfo.loffset + wtinfo.roffset;
+		smallwidth = largewidth - REMOVECHARS * wtinfo.font_x;
+		nw.Width = small ? smallwidth : largewidth;
+		wtexts[0].text = small ? small_header : large_header;
+
+		/* and set up big gadget */
+		biggadget.LeftEdge = wtinfo.loffset;
+		biggadget.TopEdge = wtinfo.toffset;
+		biggadget.Width = -wtinfo.roffset - wtinfo.loffset;
+		biggadget.Height = wtinfo.font_y;
+
+		if (w = OpenWindowTagList(&nw, wtags)) {
+			if (w->Width != nw.Width) {
+				MsgBox("Window too small for text\nChoose a smaller font");
+				CloseAll();
+				return EXIT_FAILURE;
+			}
+
+			menu = AllocMemSnapMenu(w);
+			if(menu != NULL) {
+				SetMenuStrip(w, menu);
+			}
+			else {
+				MsgBox("Couldn't create menus");
+				CloseAll();
+				return EXIT_FAILURE;
+			}
+
+			wtinfo.window = w;
+			SetFont(w->RPort, wtinfo.tf);
+			RenderWinTexts(&wtinfo, wtexts); /* draw initial texts */
+
+			clearmem(smem); /* initialize memory display */
+
+			// Main event loop
+			for (;;) {
+				while (msg = (struct IntuiMessage *)GetMsg(w->UserPort)) {
+					class = msg->Class;
+					code = msg->Code;
+					ReplyMsg((struct Message *)msg);
+
+					if (class == GADGETUP) {
+						if (!small) {
+							// New snapshot
+							obtainmem(smem);
+							updatemem(smem, stexts);
+							clearpeak(peakvals);
+						}
+						else {
+							// Naughty but so what?
+							goto makelarge;
+						}
+					}
+					else if (class == NEWSIZE) {
+						RenderWinTexts(&wtinfo, wtexts); /* redraw texts */
+						if (!small) {
+							updatemem(smem, stexts);
+						}
+					}
+					else if (class == MENUPICK) {
+						switch (ITEMNUM(code)) {
+						case SMALL:
+							if (!small) {
+								wtexts[0].text = small_header;
+								SizeWindow(w, smallwidth - largewidth, 0);
+								small = TRUE;
+							}
+							break;
+
+						case LARGE:
+						makelarge:
+							// todo: move if nec.
+							if (small) {
+								WORD movex;
+								wtexts[0].text = large_header;
+								movex = w->WScreen->Width - w->LeftEdge - largewidth;
+								if (movex < 0)
+									MoveWindow(w, movex, 0);
+								SizeWindow(w, largewidth - smallwidth, 0);
+								small = FALSE;
+							}
+							break;
+
+						case ABOUT:
+							MsgBox(about_text);
+							break;
+
+						case QUIT:
+							CloseAll();
+							return EXIT_FAILURE;
+						}
+					}
+				}
+
+				// Do memory window stuff
+				obtainmem(cmem);
+				updatemem(cmem, ctexts);
+
+				if (small) {
+					Delay(MEMONLY_TIME);
+				}
+				else {
+					submem(umem, smem, cmem);
+					updatemem(umem, utexts);
+					updatepeak(umem, ptexts, peakvals);
+
+					Delay(MEMSNAP_TIME);
+				}
+			}
+		}
+		else {
+			MsgBox("Can't open window");
+		}
+	}
+	else {
+		MsgBox("Can't open font");
+	}
+
+	FreeOurIcon();
+	CloseAll();
+	return EXIT_SUCCESS;
 }
-

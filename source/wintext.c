@@ -26,7 +26,7 @@ BOOL InitWinTextInfo(WINTEXTINFO *wti)	/* for Workbench screen at moment */
 
 	if (GetScreenData(&screen, sizeof(screen), WBENCHSCREEN, NULL))
 	{
-		wti->tattr.ta_Name = TTString("FONTNAME", "topaz.font");
+		wti->tattr.ta_Name = (STRPTR)TTString("FONTNAME", "topaz.font");
 		wti->tattr.ta_YSize = TTInt("FONTHEIGHT", 8);
 
 		if (wti->tf = OpenDiskFont(&wti->tattr))
@@ -43,27 +43,24 @@ BOOL InitWinTextInfo(WINTEXTINFO *wti)	/* for Workbench screen at moment */
 		}
 	}
 	return FALSE;
-}	
+}
 
 
 void RenderWinTexts(WINTEXTINFO *info, WINTEXT *wt)
 {
-	struct RastPort *rp;
-
-	while (wt)
-	{
-		rp = info->window->RPort;
+	struct RastPort *rp = info->window->RPort;
+	while (wt) {
 		SetAPen(rp, wt->pen);
 		SetBPen(rp, wt->bg);
 		SetDrMd(rp, wt->mode);
-		Move(rp, info->loffset + wt->lpos*info->font_x, 
+		Move(rp, info->loffset + wt->lpos*info->font_x,
 		     info->toffset + wt->tpos*info->font_y + info->font_baseline);
-		Text(rp, wt->text, strlen(wt->text));
+		Text(rp, (STRPTR)wt->text, strlen(wt->text));
 		wt = wt->next;
 	}
 }
 
-/****** UNUSED AT MOMENT 
+/****** UNUSED AT MOMENT
 
 void WinText(WINTEXTINFO *info, char *text,
 	     UWORD lpos, UWORD tpos, UWORD pen, UWORD mode)
