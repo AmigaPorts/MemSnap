@@ -17,8 +17,7 @@
 #include "wintext.h"		/* font-independent positioning of text */
 #include "icon.h"
 #include "menu.h"
-
-const char version_str[] = "$VER: MemSnapII 1.2 (" __DATE__ ")";
+#include "version.h"
 
 #define CHARS_ACROSS	41	/* max chars across for window texts */
 #define CHARS_DOWN	 4	/* how many rows of text in window */
@@ -26,13 +25,6 @@ const char version_str[] = "$VER: MemSnapII 1.2 (" __DATE__ ")";
 
 const char large_header[] = "       Current Snapshot   In use     Peak";
 const char small_header[] = "    Memory";
-
-const char about_text[] = (
-"       MemSnapII v1.2\n"
-" original by Martin W. Scott\n"
-"github.com/AmigaPorts/MemSnap\n\n"
-"          Freeware"
-);
 
 WINTEXT wtexts[] =
 {

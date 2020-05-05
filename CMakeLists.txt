@@ -11,3 +11,13 @@ file(GLOB_RECURSE SOURCES source/*.c source/*.h)
 add_executable(MemSnap ${SOURCES})
 target_include_directories(MemSnap PRIVATE ${PROJECT_SOURCE_DIR}/source)
 target_compile_options(MemSnap PUBLIC -Wall -Wextra -Os)
+
+set(MAJOR_VERSION 1)
+set(MINOR_VERSION 2)
+set(AMIGA_VERSION "${MAJOR_VERSION}.${MINOR_VERSION}")
+
+configure_file(
+		${PROJECT_SOURCE_DIR}/source/version.h.in
+		version.h
+)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
