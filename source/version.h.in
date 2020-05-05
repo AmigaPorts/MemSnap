@@ -1,5 +1,5 @@
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef _MEMSNAP_VERSION_H_
+#define _MEMSNAP_VERSION_H_
 
 const char version_str[] = (
 	"$VER: ${PROJECT_NAME} ${AMIGA_VERSION} "
@@ -7,10 +7,11 @@ const char version_str[] = (
 );
 
 const char about_text[] = (
-"${PROJECT_NAME} v${AMIGA_VERSION}\n"
-"Original by Martin W. Scott\n"
-"github.com/AmigaPorts/MemSnap\n\n"
-"License: Freeware"
+	"${PROJECT_NAME} v${AMIGA_VERSION}\n"
+	"Created by Martin W. Scott\n"
+	"Maintained by AmigaDev\n"
+	"github.com/AmigaPorts/MemSnap\n\n"
+	"License: Freeware"
 );
 
-#endif /* VERSION_H */
+#endif // _MEMSNAP_VERSION_H_

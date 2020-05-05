@@ -1,3 +1,9 @@
+#ifndef _MEMSNAP_WINTEXT_H_
+#define _MEMSNAP_WINTEXT_H_
+
+#include <exec/types.h>
+#include <proto/graphics.h>
+
 /*
 *	wintext.h
 *
@@ -28,3 +34,4 @@ BOOL InitWinTextInfo(WINTEXTINFO *);
 void WinText(WINTEXTINFO *, char *text, UWORD lpos, UWORD tpos, UWORD pen, UWORD mode);
 void RenderWinTexts(WINTEXTINFO *, WINTEXT *);
 
+#endif // _MEMSNAP_WINTEXT_H_

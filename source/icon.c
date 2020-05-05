@@ -16,23 +16,23 @@
 
 static struct DiskObject *onekeyobj;
 
-BOOL GetOurIcon(struct WBStartup *WBenchMsg)
-{
-	if (WBenchMsg)
+BOOL GetOurIcon(struct WBStartup *WBenchMsg) {
+	if (WBenchMsg) {
 		onekeyobj = GetDiskObject((STRPTR)WBenchMsg->sm_ArgList->wa_Name);
+	}
 	return onekeyobj ? TRUE : FALSE;
 }
 
 /* safe to call when open failed, and multiple times */
-void FreeOurIcon()
-{
-	if (onekeyobj) FreeDiskObject(onekeyobj);
+void FreeOurIcon() {
+	if (onekeyobj) {
+		FreeDiskObject(onekeyobj);
+	}
 	onekeyobj = NULL;
 }
 
 /* like ArgString() */
-char * TTString(char *name, char *def)
-{
+char * TTString(char *name, char *def) {
 	if(onekeyobj) {
 		char *what = (char*)FindToolType(onekeyobj->do_ToolTypes, (STRPTR)name);
 		if(what != NULL) {
@@ -43,8 +43,7 @@ char * TTString(char *name, char *def)
 }
 
 /* like ArgInt() */
-LONG TTInt(char *name, LONG def)
-{
+LONG TTInt(char *name, LONG def) {
 	if(onekeyobj) {
 		char *what = (char*)FindToolType(onekeyobj->do_ToolTypes, (STRPTR)name);
 		if(what != NULL) {
@@ -55,12 +54,7 @@ LONG TTInt(char *name, LONG def)
 }
 
 /* simple extension to ArgXXX routines */
-BOOL TTBool(char *name, BOOL def)
-{
-	char	*s;
-
-	s = TTString(name, def ? "YES" : "NO");
-
-	return	((strcmp(s, "YES") == 0) ||
-		(strcmp(s, "TRUE") == 0)) ? TRUE : FALSE;
+BOOL TTBool(char *name, BOOL def) {
+	char *s = TTString(name, def ? "YES" : "NO");
+	return ((strcmp(s, "YES") == 0) || (strcmp(s, "TRUE") == 0));
 }

@@ -6,10 +6,11 @@ A small memory monitor utility, resurrected from Aminet and improved. Original p
 
 ### MemSnap version 1.2 (2020.05.05)
 
-- First AmigaPorts release
+- First AmigaDev release
 - Added peak memory usage column
 - Added CMake build system
 - Reformatted readme to Markdown
+- Cleaned up sources
 
 ### Latest Aminet version (1993.02.10)
 

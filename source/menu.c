@@ -6,11 +6,10 @@
 *	MWS, 2/93.
 */
 
+#include "menu.h"
 #include <exec/types.h>
-#include <intuition/intuition.h>
 #include <libraries/gadtools.h>
 #include <proto/gadtools.h>
-#include "menu.h"
 
 static struct NewMenu gt_items[] = {
 	{ NM_TITLE, (const STRPTR)"MemSnap", NULL, 0, 0, NULL },

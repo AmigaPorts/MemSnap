@@ -8,16 +8,12 @@
 *	MWS 3/92.
 */
 
-#include <exec/types.h>
+#include "wintext.h"
+#include <string.h>
 #include <graphics/gfxmacros.h>
 #include <intuition/intuition.h>
 #include <proto/diskfont.h>
-#include <proto/graphics.h>
 #include <proto/intuition.h>
-
-#include <string.h>
-
-#include "wintext.h"
 #include "icon.h"
 
 BOOL InitWinTextInfo(WINTEXTINFO *wti)	/* for Workbench screen at moment */
