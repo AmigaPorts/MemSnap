@@ -18,50 +18,64 @@
 #include "icon.h"
 #include "menu.h"
 
-char version_str[] = "$VER: MemSnapII 1.0 (" __DATE__ ")";
+const char version_str[] = "$VER: MemSnapII 1.1 (" __DATE__ ")";
 
-#define CHARS_ACROSS	32	/* max chars across for window texts */
+#define CHARS_ACROSS	41	/* max chars across for window texts */
 #define CHARS_DOWN	 4	/* how many rows of text in window */
-#define REMOVECHARS	18	/* how many cols removed when window small */
+#define REMOVECHARS	27	/* how many cols removed when window small */
 
-#define LARGE_HEADER "       Current Snapshot     Used"
+#define LARGE_HEADER "       Current Snapshot     Used     Peak"
 #define SMALL_HEADER "    Memory"
 
-#define ABOUT_TXT "\
-  MemSnapII v1.0\n\
-by Martin W. Scott\n\
-\n\
-     Freeware"
+const char about_text[] = (
+"       MemSnapII v1.1\n"
+"     by Martin W. Scott\n"
+"github.com/AmigaPorts/MemSnap\n"
+"\n"
+"          Freeware"
+);
 
 WINTEXT wtexts[] =
 {
-    {&wtexts[1], "       Current Snapshot     Used", 0, 0, 3, 0, JAM2},
+    {&wtexts[1], LARGE_HEADER, 0, 0, 3, 0, JAM2},
     {&wtexts[2], " Chip", 0, 1, 2, 0, JAM2},
     {&wtexts[3], " Fast", 0, 2, 2, 0, JAM2},
     {NULL, "Total", 0, 3, 2, 0, JAM2}
 };
 
-char cbuf[3][9], sbuf[3][9], ubuf[3][9];
+LONG peakvals[3] = {0, 0, 0};
+char cbuf[3][9], sbuf[3][9], ubuf[3][9], pbuf[3][9];
 
+// "Current Snapshot" / "Memory" column
 WINTEXT ctexts[] =
-{
+{   // next text x y pen bg mode
     {&ctexts[1], &cbuf[0][0], 6, 1, 1, 0, JAM2},
     {&ctexts[2], &cbuf[1][0], 6, 2, 1, 0, JAM2},
     {NULL, &cbuf[2][0], 6, 3, 1, 0, JAM2}
 };
 
+// "Snapshot" column
 WINTEXT stexts[] =
-{
+{   // next text x y pen bg mode
     {&stexts[1], &sbuf[0][0], 15, 1, 1, 0, JAM2},
     {&stexts[2], &sbuf[1][0], 15, 2, 1, 0, JAM2},
     {NULL, &sbuf[2][0], 15, 3, 1, 0, JAM2}
 };
 
+// "Used" column
 WINTEXT utexts[] =
-{
+{   // next text x y pen bg mode
     {&utexts[1], &ubuf[0][0], 24, 1, 1, 0, JAM2},
     {&utexts[2], &ubuf[1][0], 24, 2, 1, 0, JAM2},
     {NULL, &ubuf[2][0], 24, 3, 1, 0, JAM2}
+};
+
+// "Peak column"
+WINTEXT ptexts[] =
+{   // next text x y pen bg mode
+    {&ptexts[1], &pbuf[0][0], 33, 1, 1, 0, JAM2},
+    {&ptexts[2], &pbuf[1][0], 33, 2, 1, 0, JAM2},
+    {NULL, &pbuf[2][0], 33, 3, 1, 0, JAM2}
 };
 
 /* back to normal stuff */
@@ -107,15 +121,15 @@ struct TagItem wtags[] =
     {TAG_DONE}
 };
 
-struct Window *w;		/* screen pointer */
-struct Menu *menu;
 struct GfxBase *GfxBase;	/* graphics pointer */
 struct IntuitionBase *IntuitionBase;	/* intuition pointer */
 struct Library *IconBase, *DiskfontBase, *GadToolsBase;
-WINTEXTINFO wtinfo;
 
-extern struct WBStartup *_WBenchMsg; // This is for bebbo
-// extern struct WBStartup *WBenchMsg;
+static struct Window *w;		/* screen pointer */
+static struct Menu *menu;
+static WINTEXTINFO wtinfo;
+
+extern struct WBStartup *_WBenchMsg;
 
 #define MEMSNAP_TIME	10L
 #define MEMONLY_TIME	25L
@@ -124,59 +138,50 @@ extern struct WBStartup *_WBenchMsg; // This is for bebbo
 
 /* prototypes for general routines */
 
-void main(void);
-BOOL OpenLibs(void);
-void CloseAll(void);
-BOOL long2str(LONG, char *, UWORD);
+static void CloseAll(void);
+static BOOL long2str(LONG, char *, UWORD);
 
-#ifdef LATTICE	/* save the odd byte */
-#include <stdlib.h>
-void MemCleanup(void){}
-#endif
-
-BOOL
-OpenLibs()			/* open required libraries */
+static BOOL OpenLibs()			/* open required libraries */
 {
-    if ((GfxBase = (void *) OpenLibrary("graphics.library", 0L)) &&
-	(IntuitionBase = (void *) OpenLibrary("intuition.library", 37L)) &&
-	(DiskfontBase = (void *) OpenLibrary("diskfont.library", 36L)) &&
-	(GadToolsBase = (void *) OpenLibrary("gadtools.library", 37L)) &&
-	(IconBase = (void *) OpenLibrary("icon.library", 37L)))
-	return TRUE;
-    CloseAll();
-    return FALSE;
+	if (
+		(GfxBase = (struct GfxBase *) OpenLibrary("graphics.library", 0L)) &&
+		(IntuitionBase = (struct IntuitionBase *) OpenLibrary("intuition.library", 37L)) &&
+		(DiskfontBase = (struct Library *) OpenLibrary("diskfont.library", 36L)) &&
+		(GadToolsBase = (struct Library *) OpenLibrary("gadtools.library", 37L)) &&
+		(IconBase = (struct Library *) OpenLibrary("icon.library", 37L))
+	) {
+		return TRUE;
+	}
+	CloseAll();
+	return FALSE;
 }
 
 
-void
-CloseAll()			/* close opened libraries */
+static void CloseAll()			/* close opened libraries */
 {
-    if (menu)
-    {
-	ClearMenuStrip(w);
-	FreeMemSnapMenu();
-    }
-    if (wtinfo.tf)
-	CloseFont(wtinfo.tf);
-    if (w)
-	CloseWindow(w);
-    if (IconBase)
-	CloseLibrary(IconBase);
-    if (DiskfontBase)
-	CloseLibrary(DiskfontBase);
-    if (GadToolsBase)
-	CloseLibrary(GadToolsBase);
-    if (GfxBase)
-	CloseLibrary(GfxBase);
-    if (IntuitionBase)
-	CloseLibrary(IntuitionBase);
+	if (menu) {
+		ClearMenuStrip(w);
+		FreeMemSnapMenu();
+	}
+	if (wtinfo.tf)
+		CloseFont(wtinfo.tf);
+	if (w)
+		CloseWindow(w);
+	if (IconBase)
+		CloseLibrary(IconBase);
+	if (DiskfontBase)
+		CloseLibrary(DiskfontBase);
+	if (GadToolsBase)
+		CloseLibrary(GadToolsBase);
+	if (GfxBase)
+		CloseLibrary(GfxBase);
+	if (IntuitionBase)
+		CloseLibrary(IntuitionBase);
 }
 
 
 /* and this one is rather specific to this program... */
-
-BOOL
-long2str(LONG n, char *s, UWORD len)	/* long to string, right-adjusted */
+static BOOL long2str(LONG n, char *s, UWORD len)	/* long to string, right-adjusted */
 {				/* will NOT null-terminate */
     /* len is space in buffer (excl. '\0') */
     /* also, prints nothin if zero */
@@ -216,7 +221,7 @@ long2str(LONG n, char *s, UWORD len)	/* long to string, right-adjusted */
 
 /* Memory data management/manipulation routines */
 
-void obtainmem(ULONG *), submem(ULONG *, ULONG *, ULONG *), updatemem(ULONG *, WINTEXT *);
+static void obtainmem(LONG *), submem(LONG *, LONG *, LONG *), updatemem(LONG *, WINTEXT *);
 
 #define CHIP 0
 #define FAST 1
@@ -224,16 +229,14 @@ void obtainmem(ULONG *), submem(ULONG *, ULONG *, ULONG *), updatemem(ULONG *, W
 
 #define clearmem(mem) 		mem[CHIP] = mem[FAST] = mem[TOTAL] = 0L
 
-void
-obtainmem(ULONG * mem)		/* store current memory */
+static void obtainmem(LONG * mem)		/* store current memory */
 {
     mem[TOTAL] = mem[CHIP] = AvailMem(MEMF_CHIP);
     mem[TOTAL] += (mem[FAST] = AvailMem(MEMF_FAST));
 }
 
 
-void
-submem(ULONG * to, ULONG * from, ULONG * howmuch)	/* to = from - howmuch */
+static void submem(LONG * to, LONG * from, LONG * howmuch)	/* to = from - howmuch */
 {
     to[CHIP] = from[CHIP] - howmuch[CHIP];
     to[FAST] = from[FAST] - howmuch[FAST];
@@ -241,8 +244,7 @@ submem(ULONG * to, ULONG * from, ULONG * howmuch)	/* to = from - howmuch */
 }
 
 
-void
-updatemem(ULONG * mem, WINTEXT * memtext)	/* update specified display */
+static void updatemem(LONG * mem, WINTEXT * memtext)	/* update specified display */
 {
     long2str(mem[CHIP], memtext[CHIP].text, 8);
     long2str(mem[FAST], memtext[FAST].text, 8);
@@ -251,9 +253,34 @@ updatemem(ULONG * mem, WINTEXT * memtext)	/* update specified display */
     RenderWinTexts(&wtinfo, memtext);
 }
 
+static void updatepeak(LONG * mem, WINTEXT * memtext, LONG *peakvals)	/* update specified display */
+{
+		if(peakvals[CHIP] < mem[CHIP]) {
+			peakvals[CHIP] = mem[CHIP];
+    	long2str(mem[CHIP], memtext[CHIP].text, 8);
+		}
+
+		if(peakvals[FAST] < mem[FAST]) {
+			peakvals[FAST] = mem[FAST];
+    	long2str(mem[FAST], memtext[FAST].text, 8);
+		}
+
+		if(peakvals[TOTAL] < mem[TOTAL]) {
+			peakvals[TOTAL] = mem[TOTAL];
+    	long2str(mem[TOTAL], memtext[TOTAL].text, 8);
+		}
+
+    RenderWinTexts(&wtinfo, memtext);
+}
+
+static void clearpeak(LONG *peakvals) {
+	peakvals[CHIP] = 0;
+	peakvals[FAST] = 0;
+	peakvals[TOTAL] = 0;
+}
+
 /* pop up a requester */
-void
-EasyEasyRequest(char *str)
+static void EasyEasyRequest(char *str)
 {
     struct EasyStruct es;
 
@@ -275,7 +302,7 @@ EasyEasyRequest(char *str)
 void main(void)		/* provide a memory 'meter' */
 {
     struct IntuiMessage *msg;		/* our window messages */
-    ULONG cmem[3], smem[3], umem[3];	/* storage of memory information */
+    LONG cmem[3], smem[3], umem[3];	/* storage of memory information */
     ULONG class;			/* message class */
     UWORD code;				/* and code */
     WORD smallwidth, largewidth;	/* possible window sizes */
@@ -283,7 +310,7 @@ void main(void)		/* provide a memory 'meter' */
 
 
     if (!OpenLibs())		/* failure => under 1.3 */
-	return;
+			return;
 
     GetOurIcon(_WBenchMsg);
     if (InitWinTextInfo(&wtinfo))
@@ -345,6 +372,7 @@ void main(void)		/* provide a memory 'meter' */
 				/* new snapshot */
 				obtainmem(smem);
 				updatemem(smem, stexts);
+				clearpeak(peakvals);
 			}
 			else goto makelarge;	/* naughty but so what? */
 		    }
@@ -381,7 +409,7 @@ makelarge:		    if (small)	/* to do: move if nec. */
 			    break;
 
 			case ABOUT:
-			    Msg(ABOUT_TXT);
+			    Msg(about_text);
 			    break;
 
 			case QUIT:
@@ -404,6 +432,7 @@ makelarge:		    if (small)	/* to do: move if nec. */
 		{
 		    submem(umem, smem, cmem);
 		    updatemem(umem, utexts);
+				updatepeak(umem, ptexts, peakvals);
 
 		    Delay(MEMSNAP_TIME);
 		}
@@ -420,3 +449,4 @@ makelarge:		    if (small)	/* to do: move if nec. */
 
     CloseAll();
 }
+
