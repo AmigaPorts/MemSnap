@@ -24,8 +24,8 @@ const char version_str[] = "$VER: MemSnapII 1.1 (" __DATE__ ")";
 #define CHARS_DOWN	 4	/* how many rows of text in window */
 #define REMOVECHARS	27	/* how many cols removed when window small */
 
-#define LARGE_HEADER "       Current Snapshot     Used     Peak"
-#define SMALL_HEADER "    Memory"
+const char large_header[] = "       Current Snapshot   In use     Peak";
+const char small_header[] = "    Memory";
 
 const char about_text[] = (
 "       MemSnapII v1.1\n"
@@ -37,7 +37,7 @@ const char about_text[] = (
 
 WINTEXT wtexts[] =
 {
-    {&wtexts[1], LARGE_HEADER, 0, 0, 3, 0, JAM2},
+    {&wtexts[1], large_header, 0, 0, 3, 0, JAM2},
     {&wtexts[2], " Chip", 0, 1, 2, 0, JAM2},
     {&wtexts[3], " Fast", 0, 2, 2, 0, JAM2},
     {NULL, "Total", 0, 3, 2, 0, JAM2}
@@ -325,7 +325,7 @@ void main(void)		/* provide a memory 'meter' */
 	largewidth = CHARS_ACROSS * wtinfo.font_x + wtinfo.loffset + wtinfo.roffset;
 	smallwidth = largewidth - REMOVECHARS * wtinfo.font_x;
 	nw.Width = small ? smallwidth : largewidth;
-	wtexts[0].text = small ? SMALL_HEADER : LARGE_HEADER;
+	wtexts[0].text = small ? small_header : large_header;
 
 	/* and set up big gadget */
 	biggadget.LeftEdge = wtinfo.loffset;
@@ -389,7 +389,7 @@ void main(void)		/* provide a memory 'meter' */
 			case SMALL:
 			    if (!small)
 			    {
-				wtexts[0].text = SMALL_HEADER;
+				wtexts[0].text = small_header;
 				SizeWindow(w, smallwidth-largewidth, 0);
 				small = TRUE;
 			    }
@@ -399,7 +399,7 @@ void main(void)		/* provide a memory 'meter' */
 makelarge:		    if (small)	/* to do: move if nec. */
 			    {
 				WORD movex;
-				wtexts[0].text = LARGE_HEADER;
+				wtexts[0].text = large_header;
 				movex = w->WScreen->Width - w->LeftEdge - largewidth;
 				if (movex < 0)
 				    MoveWindow(w, movex, 0);
