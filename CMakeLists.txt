@@ -21,3 +21,5 @@ configure_file(
 		version.h
 )
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+target_link_options(MemSnap PRIVATE -Wl,-Map=MemSnap.map)
