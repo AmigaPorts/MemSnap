@@ -35,7 +35,7 @@
 
         All these changes can only be used if starting from Workbench; so, if
 	starting MemSnap at bootup, shove it into WBStartup.
- 
+
 
     MemSnap version 1.0 (3/92)
     --------------------------
